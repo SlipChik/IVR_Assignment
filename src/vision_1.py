@@ -10,6 +10,7 @@ from sensor_msgs.msg import Image
 from std_msgs.msg import Float64MultiArray, Float64
 from cv_bridge import CvBridge, CvBridgeError
 
+
 class image_converter:
     def __init__(self):
         # initialize the node named image_processing
@@ -58,17 +59,70 @@ class image_converter:
         cy = int(M['m01'] / M['m00'])
 
         return np.array([cx, cy])
-    
 
+    # find the centre of the yellow joint
+    def detect_yellow(self, img):
+        # create a yellow mask
+        mask = cv2.inRange(img, (0, 100, 100), (0, 255, 255))
 
+        # apply a dilate to make the binary region larger
+        kernel = np.ones((5, 5), np.uint8)
+        mask = cv2.dilate(mask, kernel, iterations=3)
 
+        # get the moments of the mask
+        M = cv2.moments(mask)
 
+        # get the center of the blue joint
+        cx = int(M['m10'] / M['m00'])
+        cy = int(M['m01'] / M['m00'])
 
+        return np.array([cx, cy])
 
+    # find the centre of the blue joint
+    def detect_blue(self, img):
+        # create a blue mask
+        mask = cv2.inRange(img, (100, 0, 0), (255, 0, 0))
 
+        # apply a dilate to make the binary region larger
+        kernel = np.ones((5, 5), np.uint8)
+        mask = cv2.dilate(mask, kernel, iterations=3)
 
+        # get the moments of the mask
+        M = cv2.moments(mask)
 
+        # get the center of the blue joint
+        cx = int(M['m10'] / M['m00'])
+        cy = int(M['m01'] / M['m00'])
 
+        return np.array([cx, cy])
+
+    # find the centre of the red joint
+    def detect_red(self, img):
+        # create a red mask
+        mask = cv2.inRange(img, (0, 0, 100), (0, 0, 255))
+
+        # apply a dilate to make the binary region larger
+        kernel = np.ones((5, 5), np.uint8)
+        mask = cv2.dilate(mask, kernel, iterations=3)
+
+        # get the moments of the mask
+        M = cv2.moments(mask)
+
+        # get the center of the blue joint
+        cx = int(M['m10'] / M['m00'])
+        cy = int(M['m01'] / M['m00'])
+
+        return np.array([cx, cy])
+
+        # Calculate the conversion from pixel to meter
+        def pixel2meter(self, img):
+            centre_yellow = self.detect_yellow(img)
+            centre_green = self.detect_green(img)
+
+            dist = np.sum((centre_yellow - centre_green) ** 2)
+
+            # the distance between yellow and green joints is 4 meter
+            return 4 / np.sqrt(dist)
 
     # Recieve data from camera 1 and camera 2, process it, and publish
     def callback1(self, data1, data2):
