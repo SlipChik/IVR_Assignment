@@ -5,6 +5,7 @@ import sys
 import rospy
 import cv2
 import numpy as np
+import message_filters
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float64MultiArray, Float64
@@ -17,20 +18,19 @@ class image_converter:
         rospy.init_node('image_processing', anonymous=True)
 
         # initialize a publisher to send images from camera1 to a topic named image_topic1
-        self.image_pub1 = rospy.Publisher("image_topic1", Image, queue_size=1)
-
-        # initialize a subscriber to receive messages from a
-        self.image_sub1 = rospy.Subscriber("/camera1/robot.image_raw", Image)
-        # initialize a subscriber to receive messages from a
-        self.image_sub2 = rospy.Subscriber("/camera2/robot.image_raw", Image)
+        self.image_pub1 = rospy.Publisher("image_topic1", Image, queue_size=10)
+        # initialize a subscriber to receive messages from a topic named /robot/camera1/image_raw
+        self.image_sub1 = message_filters.Subscriber("/camera1/robot/image_raw", Image)
+        # initialize a subscriber to receive messages from a topic named /robot/camera2/image_raw
+        self.image_sub2 = message_filters.Subscriber("/camera2/robot/image_raw", Image)
+        # Synchronize subscribers into one callback
+        ts = message_filters.TimeSynchronizer([self.image_sub1, self.image_sub2], 10)
+        ts.registerCallback(self.callback1)
 
         # initialize a publisher to send joints' angular position to a topic called joints_pos
         self.joints_pub = rospy.Publisher("joints_pos", Float64MultiArray, queue_size=10)
-
-        # initialize a subscriber to recieve messages rom a topic named /robot/camera1/image_raw
-        self.image_sub1 = rospy.Subscriber("/camera1/robot/image_raw", Image)
-        # initialize a subscriber to recieve messages rom a topic named /robot/camera2/image_raw
-        self.image_sub2 = rospy.Subscriber("/camera2/robot/image_raw", Image)
+        # initialize a publisher to send robot end-effector position
+        self.end_effector_pub = rospy.Publisher("end_effector_prediction", Float64MultiArray, queue_size=10)
         # initialize the bridge between openCV and ROS
         self.bridge = CvBridge()
 
@@ -114,15 +114,15 @@ class image_converter:
 
         return np.array([cx, cy])
 
-        # Calculate the conversion from pixel to meter
-        def pixel2meter(self, img):
-            centre_yellow = self.detect_yellow(img)
-            centre_green = self.detect_green(img)
+    # Calculate the conversion from pixel to meter
+    def pixel2meter(self, img):
+        centre_yellow = self.detect_yellow(img)
+        centre_green = self.detect_green(img)
 
-            dist = np.sum((centre_yellow - centre_green) ** 2)
+        dist = np.sum((centre_yellow - centre_green) ** 2)
 
-            # the distance between yellow and green joints is 4 meter
-            return 4 / np.sqrt(dist)
+        # the distance between yellow and green joints is 4 meter
+        return 4 / np.sqrt(dist)
 
     # Recieve data from camera 1 and camera 2, process it, and publish
     def callback1(self, data1, data2):
