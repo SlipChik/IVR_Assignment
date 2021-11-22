@@ -35,7 +35,7 @@ class image_converter:
         self.bridge = CvBridge()
 
         # initialize a publisher to send joints' angular position to the robot
-        self.joint2_pub = rospy.Publisher("/robot/joint2_position_controller/command", Float64, queue_size=10)
+        self.joint1_pub = rospy.Publisher("/robot/joint1_position_controller/command", Float64, queue_size=10)
         self.joint3_pub = rospy.Publisher("/robot/joint3_position_controller/command", Float64, queue_size=10)
         self.joint4_pub = rospy.Publisher("/robot/joint4_position_controller/command", Float64, queue_size=10)
 
@@ -196,15 +196,17 @@ class image_converter:
         centre_red_2 = self.detect_red(img2)
         centre_red = np.array([centre_red_2[0], centre_red_1[0], (centre_red_1[1] + centre_red_2[1]) / 2])
 
-        # calculate joint 2 & 3 & 4
+        # calculate joint 1 & 3 & 4
         link2 = centre_blue - centre_yellow
         link3 = centre_red - centre_blue
 
-        x_transfered = np.cross(link2, y)
-        joint2 = np.arccos(np.dot(x_transfered, x) / (self.get_vector_length(x_transfered) * self.get_vector_length(x)))
+
 
         angle_link2_y = np.arccos(np.dot(link2, y) / (self.get_vector_length(link2) * self.get_vector_length(y)))
-        joint3 = angle_link2_y - np.pi / 2
+        joint1 = angle_link2_y
+
+        angle_link2_z = np.arccos(np.dot(link2, z) / (self.get_vector_length(link2) * self.get_vector_length(z)))
+        joint3 = angle_link2_z
 
         norm_link2_link3 = np.linalg.norm(link2) * np.linalg.norm(link3)
         cross = np.arcsin(np.linalg.norm(np.cross(link2, link3)) / norm_link2_link3)
@@ -214,7 +216,7 @@ class image_converter:
         else:
             joint4 = angle_link3_z
 
-        return np.array([joint2, joint3, joint4])
+        return np.array([joint1, joint3, joint4])
 
     # Recieve data from camera 1 and camera 2, process it, and publish
     def callback1(self, data1, data2):
@@ -226,8 +228,8 @@ class image_converter:
             print(e)
 
         joints_angle = self.detect_joint_angles(self.cv_image1, self.cv_image2)
-        self.joint2 = Float64()
-        self.joint2.data = joints_angle[0]
+        self.joint1 = Float64()
+        self.joint1.data = joints_angle[0]
         self.joint3 = Float64()
         self.joint3.data = joints_angle[1]
         self.joint4 = Float64()
@@ -236,7 +238,7 @@ class image_converter:
         # Publish the results
         try:
             self.image_pub1.publish(self.bridge.cv2_to_imgmsg(self.cv_image1, "bgr8"))
-            self.joint2_pub.publish(self.joint2)
+            self.joint1_pub.publish(self.joint1)
             self.joint3_pub.publish(self.joint3)
             self.joint4_pub.publish(self.joint4)
         except CvBridgeError as e:
