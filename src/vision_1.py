@@ -215,18 +215,21 @@ class image_converter:
         joint2 = self.get_vector_angle(x_transformed, x)
         if (joint2 > np.pi / 2):
             joint2 = np.pi - joint2
-        if (joint2 < -np.pi / 2):
-            joint2 = -np.pi + joint2
         if (yellow_blue_link[0] < 0):
             joint2 *= -1
 
         joint3 = self.get_vector_angle(yellow_blue_link, y) - np.pi / 2
-        if (joint3 > np.pi / 2):
-            joint3 = np.pi - joint3
-        if (joint3 < -np.pi / 2):
-            joint3 = -np.pi + joint3
 
         joint4 = self.get_vector_angle(yellow_blue_link, blue_red_link)
+
+        # project blue_red_link into yellow_blue_link, then compare the z value of blue_red_link depends on the axis.
+        projection = (np.dot(blue_red_link, yellow_blue_link) / self.get_vector_length(yellow_blue_link) ** 2) * yellow_blue_link
+        if (blue_red_link[1] > 0):
+            if(projection[2] < blue_red_link[2]):
+                joint4 *= -1
+        else:
+            if(projection[2] > blue_red_link[2]):
+                joint4 *= -1
 
         return np.array([joint2, joint3, joint4])
 
