@@ -34,10 +34,9 @@ class image_converter:
         # initialize the bridge between openCV and ROS
         self.bridge = CvBridge()
 
-        # initialize a publisher to send joints' angular position to the robot
-        self.joint2_pub = rospy.Publisher("/robot/joint2_position_controller/command", Float64, queue_size=10)
-        self.joint3_pub = rospy.Publisher("/robot/joint3_position_controller/command", Float64, queue_size=10)
-        self.joint4_pub = rospy.Publisher("/robot/joint4_position_controller/command", Float64, queue_size=10)
+        self.joint2_pub = rospy.Publisher("joint2_angle", Float64, queue_size=10)
+        self.joint3_pub = rospy.Publisher("joint3_angle", Float64, queue_size=10)
+        self.joint4_pub = rospy.Publisher("joint4_angle", Float64, queue_size=10)
 
         self.last_green_1 = np.zeros(2)
         self.last_green_2 = np.zeros(2)
@@ -49,11 +48,9 @@ class image_converter:
         self.last_red_2 = np.zeros(2)
 
         # hardcode the coordinate of green and yellow since joint1 is fixed
-        self.centre_green = np.array([393, 399, 543])
-        self.centre_yellow = np.array([399, 399, 430])
-
-        # record the beginning time
-        self.time_trajectory = rospy.get_time()
+        # set centre_green as origin
+        self.centre_green_detect = np.array([399, 399, 543])
+        self.centre_yellow_detect = np.array([399, 399, 430])
 
     # find the centre of the green joint
     def detect_green(self, img):
@@ -180,39 +177,56 @@ class image_converter:
     def get_vector_length(self, vector):
         return np.linalg.norm(vector)
 
-    def detect_joint_angles(self, img1, img2):
+    def get_vector_angle(self, v1, v2):
+        return np.arccos(np.dot(v1, v2) / (self.get_vector_length(v1) * self.get_vector_length(v2)))
+
+    def get_joint_centre(self):
+        centre_blue_1 = self.detect_blue(self.cv_image1)
+        centre_blue_2 = self.detect_blue(self.cv_image2)
+        centre_blue_x = centre_blue_2[0] - self.centre_green_detect[0]
+        centre_blue_y = centre_blue_1[0] - self.centre_green_detect[1]
+        centre_blue_z = -(centre_blue_1[1] + centre_blue_2[1] - 2 * self.centre_green_detect[2]) / 2
+        centre_blue = np.array([centre_blue_x, centre_blue_y, centre_blue_z])
+
+        centre_red_1 = self.detect_red(self.cv_image1)
+        centre_red_2 = self.detect_red(self.cv_image2)
+        centre_red_x = centre_red_2[0] - self.centre_green_detect[0]
+        centre_red_y = centre_red_1[0] - self.centre_green_detect[1]
+        centre_red_z = -(centre_red_1[1] + centre_red_2[1] - 2 * self.centre_green_detect[2]) / 2
+        centre_red = np.array([centre_red_x, centre_red_y, centre_red_z])
+
+        return centre_blue, centre_red
+
+    def detect_joint_angles(self):
         x = np.array([1, 0, 0])
         y = np.array([0, 1, 0])
         z = np.array([0, 0, 1])
 
-        centre_green = self.centre_green
-        centre_yellow = self.centre_yellow
+        centre_green = np.array([0, 0, 0])
+        centre_yellow = np.array([0, 0, 113])
+        centre_blue, centre_red = self.get_joint_centre()
 
-        centre_blue_1 = self.detect_blue(img1)
-        centre_blue_2 = self.detect_blue(img2)
-        centre_blue = np.array([centre_blue_2[0], centre_blue_1[0], (centre_blue_1[1] + centre_blue_2[1]) / 2])
+        # calculate joint 1 & 3 & 4
 
-        centre_red_1 = self.detect_red(img1)
-        centre_red_2 = self.detect_red(img2)
-        centre_red = np.array([centre_red_2[0], centre_red_1[0], (centre_red_1[1] + centre_red_2[1]) / 2])
+        yellow_blue_link = centre_blue - centre_yellow
+        blue_red_link = centre_red - centre_blue
 
-        # calculate joint 2 & 3 & 4
-        link2 = centre_blue - centre_yellow
-        link3 = centre_red - centre_blue
+        x_transformed = np.cross(yellow_blue_link, y)
+        joint2 = self.get_vector_angle(x_transformed, x)
+        if (joint2 > np.pi / 2):
+            joint2 = np.pi - joint2
+        if (joint2 < -np.pi / 2):
+            joint2 = -np.pi + joint2
+        if (yellow_blue_link[0] < 0):
+            joint2 *= -1
 
-        x_transfered = np.cross(link2, y)
-        joint2 = np.arccos(np.dot(x_transfered, x) / (self.get_vector_length(x_transfered) * self.get_vector_length(x)))
+        joint3 = self.get_vector_angle(yellow_blue_link, y) - np.pi / 2
+        if (joint3 > np.pi / 2):
+            joint3 = np.pi - joint3
+        if (joint3 < -np.pi / 2):
+            joint3 = -np.pi + joint3
 
-        angle_link2_y = np.arccos(np.dot(link2, y) / (self.get_vector_length(link2) * self.get_vector_length(y)))
-        joint3 = angle_link2_y - np.pi / 2
-
-        norm_link2_link3 = np.linalg.norm(link2) * np.linalg.norm(link3)
-        cross = np.arcsin(np.linalg.norm(np.cross(link2, link3)) / norm_link2_link3)
-        angle_link3_z = np.arccos(np.dot(link2, link3) / (self.get_vector_length(link2) * self.get_vector_length(link3)))
-        if (cross < 0):
-            joint4 = -angle_link3_z
-        else:
-            joint4 = angle_link3_z
+        joint4 = self.get_vector_angle(yellow_blue_link, blue_red_link)
 
         return np.array([joint2, joint3, joint4])
 
@@ -225,7 +239,11 @@ class image_converter:
         except CvBridgeError as e:
             print(e)
 
-        joints_angle = self.detect_joint_angles(self.cv_image1, self.cv_image2)
+        image = np.concatenate((self.cv_image1, self.cv_image2), axis=1)
+        im = cv2.imshow('camera1 and camera2', image)
+        cv2.waitKey(1)
+
+        joints_angle = self.detect_joint_angles()
         self.joint2 = Float64()
         self.joint2.data = joints_angle[0]
         self.joint3 = Float64()
