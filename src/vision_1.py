@@ -212,9 +212,11 @@ class image_converter:
         blue_red_link = centre_red - centre_blue
 
         x_transformed = np.cross(y, yellow_blue_link)
-        joint2 = self.get_vector_angle(x_transformed, x)
+        joint2 = self.get_vector_angle(x, x_transformed)
         if (joint2 > np.pi / 2):
             joint2 = np.pi - joint2
+        if (joint2 < -np.pi / 2):
+            joint2 = -np.pi + joint2
         if (yellow_blue_link[0] < 0):
             joint2 *= -1
 
