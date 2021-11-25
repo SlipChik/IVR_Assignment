@@ -1,0 +1,62 @@
+SOURCE: 
+cd ~/catkin_ws
+catkin_make
+source devel/setup.bash
+
+OPEN APP: 
+cd ~/catkin_ws
+roslaunch ivr_lab spawn.launch
+roslaunch ivr_assignment spawn.launch
+
+MOVE: 
+rostopic pub -1 /robot/joint1_position_controller/command std_msgs/Float64 "data: -1.0"
+
+RUN CODE: 
+cd ~/catkin_ws/src/ivr_lab/src
+chmod +x image_processing.py
+rosrun ivr_lab image_processing.py
+
+
+
+RUN ASSIGNMENT CODE: 
+cd ~/catkin_ws/src/ivr_assignment/src
+chmod +x image1.py image2.py move_1.py move_2.py vision_1.py vision_2.py 
+
+rosrun ivr_assignment image1.py
+rosrun ivr_assignment image2.py
+
+COMPLETE RUN ASSIGNMENT PROCESS: 
+TURN OFF GAZEBO
+FIRST SOURCE
+cd ~/catkin_ws/src/ivr_assignment/src
+chmod +x image1.py image2.py move_1.py move_2.py vision_1.py vision_2.py 
+roslaunch ivr_assignment spawn.launch
+
+NEW WINDOW, SOURCE AGAIN 
+rosrun ivr_assignment image1.py
+
+SEE VALUES: 
+rostopic echo /joints pos
+
+
+
+
+LAB 3: 
+rostopic echo TOPIC_NAME
+
+rostopic list
+
+
+PLOT DATA: 
+rqt_plot TOPIC_NAME/data[NUM] 
+rqt_plot /trajectory/data[0] rqt_plot /end_effector_prediction/data[0]
+
+
+ASSIGNMENT PLOT: 
+rqt_plot [TOPIC1_NAME] [TOPIC2_NAME]/data[num]
+
+rqt_plot /joint2_angle/data[0] rqt_plot /robot/joint2_position_controller/command/data[0]
+
+
+
+
