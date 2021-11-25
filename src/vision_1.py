@@ -52,8 +52,6 @@ class image_converter:
         self.centre_green_detect = np.array([399, 399, 543])
         self.centre_yellow_detect = np.array([399, 399, 430])
 
-        self.last_joint_4 = 0
-
     # find the centre of the green joint
     def detect_green(self, img):
         # create a green mask
@@ -208,12 +206,12 @@ class image_converter:
         centre_yellow = np.array([0, 0, 113])
         centre_blue, centre_red = self.get_joint_centre()
 
-        # calculate joint 1 & 3 & 4
+        # calculate joint 2 & 3 & 4
 
         yellow_blue_link = centre_blue - centre_yellow
         blue_red_link = centre_red - centre_blue
 
-        x_transformed = np.cross(yellow_blue_link, y)
+        x_transformed = np.cross(y, yellow_blue_link)
         joint2 = self.get_vector_angle(x_transformed, x)
         if (joint2 > np.pi / 2):
             joint2 = np.pi - joint2
@@ -224,45 +222,10 @@ class image_converter:
 
         joint4 = self.get_vector_angle(yellow_blue_link, blue_red_link)
 
-        # project blue_red_link into yellow_blue_link, then compare the z value of blue_red_link depends on the axis.
-        # projection = (np.dot(blue_red_link, yellow_blue_link) / self.get_vector_length(yellow_blue_link) ** 2) * yellow_blue_link
-        # if ((blue_red_link[0] > 0) and (blue_red_link[1] > 0)):
-        #     if(projection[2] < blue_red_link[2]):
-        #         joint4 *= -1
-        # elif ((blue_red_link[0] < 0) and (blue_red_link[1] > 0)):
-        #     if (projection[2] > blue_red_link[2]):
-        #         joint4 *= -1
-        # elif ((blue_red_link[0] > 0) and (blue_red_link[1] < 0)):
-        #     if (projection[2] < blue_red_link[2]):
-        #         joint4 *= -1
-        # else:
-        #     if(projection[2] > blue_red_link[2]):
-        #         joint4 *= -1
-
-        # projection_scale = (np.dot(blue_red_link, x_transformed) / self.get_vector_length(x_transformed) ** 2)
-        # projection = np.zeros(3)
-        # for i in range(3):
-        #     projection[i] = projection_scale * x_transformed[i]
-        # angle_projection_x_trans = self.get_vector_angle(projection, x_transformed)
-
         projection = np.dot(blue_red_link, x_transformed)
 
         if (projection < 0):
             joint4 *= -1
-        #
-        # if (angle_projection_x_trans == np.pi):
-        #     joint4 *= -1
-
-        print(projection > 0)
-
-        # if (self.last_joint_4 == 0):
-        #     self.last_joint_4 = joint4
-        #
-        # if (np.absolute(joint4)>0.5):
-        #     if (np.absolute((joint4 - self.last_joint_4)) > np.absolute((-joint4 - self.last_joint_4))):
-        #         joint4 *= -1
-
-        self.last_joint_4 = joint4
 
         return np.array([joint2, joint3, joint4])
 
