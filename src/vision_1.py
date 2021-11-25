@@ -49,8 +49,8 @@ class image_converter:
 
         # hardcode the coordinate of green and yellow since joint1 is fixed
         # set centre_green as origin
-        self.centre_green_detect = np.array([399, 399, 543])
-        self.centre_yellow_detect = np.array([399, 399, 430])
+        self.centre_green_detect = np.array([387, 399, 543])
+        self.centre_yellow_detect = np.array([392, 399, 431])
 
     # find the centre of the green joint
     def detect_green(self, img):
@@ -203,7 +203,7 @@ class image_converter:
         z = np.array([0, 0, 1])
 
         centre_green = np.array([0, 0, 0])
-        centre_yellow = np.array([0, 0, 113])
+        centre_yellow = np.array([5, 0, 112])
         centre_blue, centre_red = self.get_joint_centre()
 
         # calculate joint 2 & 3 & 4
@@ -215,8 +215,6 @@ class image_converter:
         joint2 = self.get_vector_angle(x, x_transformed)
         if (joint2 > np.pi / 2):
             joint2 = np.pi - joint2
-        if (joint2 < -np.pi / 2):
-            joint2 = -np.pi + joint2
         if (yellow_blue_link[0] < 0):
             joint2 *= -1
 
