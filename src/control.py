@@ -69,15 +69,6 @@ class kinematics:
         EE_cord = FK_matrix[:3, -1]
         return EE_cord
 
-    def get_end_effector_pos(self, q1, q3, q4):
-        q1 = q1.data
-        q3 = q3.data
-        q4 = q4.data
-        len_g_y = 4
-        len_y_b = 3.2
-        len_b_r = 2.8
-        x = len_y_b
-
 
     def get_jacobian(self, q1, q3, q4):
         q1 = q1.data
@@ -111,9 +102,9 @@ class kinematics:
 
 
     def get_pid_r(self, error, J_inv, dt):
-        kp = np.eye(3)
-        kd = np.eye(3) * 0.1
-        ki = np.eye(3) * 1e-7  # 1e-2
+        kp = np.eye(3) * 4
+        kd = np.eye(3) * 0.3
+        ki = np.eye(3) * 1e-3  # 1e-2
 
         self.error = error
         self.error_d = (self.error - self.last_error) / dt
@@ -184,12 +175,7 @@ class kinematics:
 
         pub_current_end_effector = Float64MultiArray()
         pub_current_end_effector.data = np.array([x,y,z])
-        #pub_current_end_effector.data = current_end_effector
 
-        # pub_current_end_effector.data = np.array(
-        #     [current_end_effector[0], current_end_effector[1], current_end_effector[2]])
-
-        #target_joints = self.pid_control(self.target_end_effector, current_end_effector)
         target_joints = self.pid_control(self.target_end_effector, np.array([x,y,z]))
         joint1 = Float64()
         joint3 = Float64()
