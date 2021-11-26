@@ -7,7 +7,6 @@ import cv2
 import numpy as np
 import sympy as sp
 import message_filters
-import math
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float64MultiArray, Float64
@@ -70,6 +69,16 @@ class kinematics:
         EE_cord = FK_matrix[:3, -1]
         return EE_cord
 
+    def get_end_effector_pos(self, q1, q3, q4):
+        q1 = q1.data
+        q3 = q3.data
+        q4 = q4.data
+        len_g_y = 4
+        len_y_b = 3.2
+        len_b_r = 2.8
+        x = len_y_b
+
+
     def get_jacobian(self, q1, q3, q4):
         q1 = q1.data
         q3 = q3.data
@@ -101,7 +110,7 @@ class kinematics:
 
 
 
-    def get_pid_r(self, error, J_inv):
+    def get_pid_r(self, error, J_inv, dt):
         kp = np.eye(3)
         kd = np.eye(3) * 0.1
         ki = np.eye(3) * 1e-7  # 1e-2
@@ -118,6 +127,7 @@ class kinematics:
         return np.dot(J_inv, r)
 
     def pid_control(self, target, current):
+        target = target.data
 
         cur_time = rospy.get_time()
         dt = cur_time - self.time_previous_step2
@@ -126,8 +136,8 @@ class kinematics:
         jacobian = self.get_jacobian(self.j1, self.j3, self.j4)
         J_inv = np.linalg.pinv(jacobian)
 
-        target_joints_d = self.get_pid_r((target - current), J_inv)
-        target_joints = np.array([self.j1, self.j3, self.j4]) + target_joints_d * dt  # 50
+        target_joints_d = self.get_pid_r((target - current), J_inv, dt)
+        target_joints = np.array([self.j1.data, self.j3.data, self.j4.data]) + target_joints_d * dt  # 50
 
         if target_joints[0] > 0:
             target_joints[0] = min(target_joints[0], np.pi)
