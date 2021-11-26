@@ -55,15 +55,14 @@ class image_converter:
         self.last_joint3 = 0
 
         self.last_joint1_queue = [0] * 60
-        
 
         self.switch = 1
 
         # self.switch_sign = -1
 
         # hardcode the coordinate of green and yellow detected from camera since joint1 is fixed
-        self.centre_green_detect = np.array([399, 399, 543])
-        self.centre_yellow_detect = np.array([399, 399, 430])
+        self.centre_green_detect = np.array([387, 399, 543])
+        self.centre_yellow_detect = np.array([392, 399, 431])
 
     # find the centre of the green joint
     def detect_green(self, img):
@@ -217,13 +216,17 @@ class image_converter:
         z = np.array([0, 0, 1])
 
         centre_green = np.array([0, 0, 0])
-        centre_yellow = np.array([0, 0, 113])
+        centre_yellow = np.array([5, 0, 112])
         centre_blue, centre_red = self.get_joint_centre()
 
         # calculate joint 1 & 3 & 4
 
         yellow_blue_link = centre_blue - centre_yellow
         blue_red_link = centre_red - centre_blue
+
+        print("x: ", (centre_red[0] * 0.038))
+        print("y: ", (centre_red[1] * 0.038))
+        print("z: ", (centre_red[2] * 0.038))
 
         # joint1 = 0
         # joint3 = 0
@@ -239,47 +242,43 @@ class image_converter:
 
         # joint3 *= self.switch_sign
 
-        if (yellow_blue_link[1] < 0): 
+        if (yellow_blue_link[1] < 0):
             joint3 *= -1
 
-        if (yellow_blue_link[0] < 0): 
+        if (yellow_blue_link[0] < 0):
             joint1 *= -1
 
-        
         joint1raw = joint1
 
-
-
         # maybe distinglish 3 cases when joint1 angle = 0
-        if (joint1 >= 0): 
+        if (joint1 >= 0):
             joint1_alt = joint1 - np.pi
 
-            if ( ( abs(joint1_alt - self.last_joint1_queue[0]) < abs(joint1 - self.last_joint1_queue[0]) ) ):
+            if ((abs(joint1_alt - self.last_joint1_queue[0]) < abs(joint1 - self.last_joint1_queue[0]))):
                 joint1 = joint1_alt
-                self.last_joint1_queue[-30:] = [joint1] * 30
+                # self.last_joint1_queue[-30:] = [joint1] * 30
                 # self.switch *= -1 
 
 
-        else: 
+        else:
             joint1_alt = joint1 + np.pi
 
-            if ( ( abs(joint1_alt - self.last_joint1_queue[0]) < abs(joint1 - self.last_joint1_queue[0]) )): 
+            if ((abs(joint1_alt - self.last_joint1_queue[0]) < abs(joint1 - self.last_joint1_queue[0]))):
                 joint1 = joint1_alt
-                self.last_joint1_queue[-30:] = [joint1] * 30
+                # self.last_joint1_queue[-30:] = [joint1] * 30
                 # self.switch *= -1
 
-
-        # if (self.switch == -1): 
+        # if (self.switch == -1):
         #     joint1 -= np.pi
 
-        #if ( abs(joint1 - self.last_joint1_queue[0]) > 0.8* np.pi): 
+        # if ( abs(joint1 - self.last_joint1_queue[0]) > 0.8* np.pi):
         #    if (self.last_joint1_queue[0] < joint1): 
         #        joint1 -= (joint1 - self.last_joint1_queue[0])
         #    else: 
         #        joint1 += (joint1 - self.last_joint1_queue[0])
 
         # if (self.get_vector_length(yellow_blue_link[0:2]) < 1): 
-            # self.constant = np.pi
+        # self.constant = np.pi
         #     joint1 = self.last_joint1
 
         # joint1 += self.constant
@@ -290,21 +289,19 @@ class image_converter:
         #     joint1 *= -1
 
         joint4 = self.get_vector_angle(yellow_blue_link, blue_red_link)
+        if (joint4 > np.pi/2):
+            joint4 = np.pi - joint4
 
-        # project blue_red_link into yellow_blue_link, then compare the z value of blue_red_link depends on the axis.
-        projection = (np.dot(blue_red_link, yellow_blue_link) / self.get_vector_length(
-            yellow_blue_link) ** 2) * yellow_blue_link
-        if (blue_red_link[1] > 0):
-            if (projection[2] < blue_red_link[2]):
-                joint4 *= -1
-        else:
-            if (projection[2] > blue_red_link[2]):
-                joint4 *= -1
+        x_transformed = np.cross(y, yellow_blue_link)
+        projection = np.dot(x_transformed, blue_red_link)
+        if (projection < 0):
+            joint4 *= -1
+
 
         self.last_yellow_blue_link = yellow_blue_link
 
         self.last_joint1 = joint1
-        self.last_joint3 = joint3 
+        self.last_joint3 = joint3
 
         self.last_joint1_queue.pop(0)
         self.last_joint1_queue.append(joint1)
@@ -335,6 +332,7 @@ class image_converter:
         self.joint1raw = Float64()
         self.joint1raw.data = joints_angle[3]
 
+
         # Publish the results
         try:
             self.image_pub1.publish(self.bridge.cv2_to_imgmsg(self.cv_image1, "bgr8"))
@@ -360,13 +358,3 @@ def main(args):
 # run the code if the node is called
 if __name__ == '__main__':
     main(sys.argv)
-
-
-
-
-
-
-
-
-
-
