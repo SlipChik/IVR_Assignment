@@ -21,9 +21,9 @@ class kinematics:
 
         # initialize a publisher to send images from camera1 to a topic named image_topic1
 
-        self.joint1_sub = rospy.Subscriber("joint1_angle", Float64, self.callback_J1)
-        self.joint3_sub = rospy.Subscriber("joint3_angle", Float64, self.callback_J3)
-        self.joint4_sub = rospy.Subscriber("joint4_angle", Float64, self.callback_J4)
+        self.joint1_sub = rospy.Subscriber("joint_angle_1", Float64, self.callback_J1)
+        self.joint3_sub = rospy.Subscriber("joint_angle_3", Float64, self.callback_J3)
+        self.joint4_sub = rospy.Subscriber("joint_angle_4", Float64, self.callback_J4)
         self.target_sub = rospy.Subscriber('target_pos', Float64MultiArray, self.callback)
         # self.end_effector_sub = rospy.Subscriber('end_effector_prediction', Float64MultiArray, self.callback)
 

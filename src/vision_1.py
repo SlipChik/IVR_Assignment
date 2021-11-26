@@ -34,9 +34,9 @@ class image_converter:
         # initialize the bridge between openCV and ROS
         self.bridge = CvBridge()
 
-        self.joint2_pub = rospy.Publisher("joint2_angle", Float64, queue_size=10)
-        self.joint3_pub = rospy.Publisher("joint3_angle", Float64, queue_size=10)
-        self.joint4_pub = rospy.Publisher("joint4_angle", Float64, queue_size=10)
+        self.joint2_pub = rospy.Publisher("joint_angle_2", Float64, queue_size=10)
+        self.joint3_pub = rospy.Publisher("joint_angle_3", Float64, queue_size=10)
+        self.joint4_pub = rospy.Publisher("joint_angle_3", Float64, queue_size=10)
 
         self.last_green_1 = np.zeros(2)
         self.last_green_2 = np.zeros(2)
