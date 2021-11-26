@@ -34,6 +34,8 @@ class image_converter:
         # initialize the bridge between openCV and ROS
         self.bridge = CvBridge()
 
+
+        # define publishers 
         self.joint1_pub = rospy.Publisher("joint_angle_1", Float64, queue_size=10)
         self.joint3_pub = rospy.Publisher("joint_angle_3", Float64, queue_size=10)
         self.joint4_pub = rospy.Publisher("joint_angle_4", Float64, queue_size=10)
@@ -42,6 +44,7 @@ class image_converter:
 
         self.last_yellow_blue_link = np.zeros(3)
 
+        # initialize variables 
         self.last_green_1 = np.zeros(2)
         self.last_green_2 = np.zeros(2)
         self.last_yellow_1 = np.zeros(2)
@@ -189,6 +192,7 @@ class image_converter:
     def get_vector_length(self, vector):
         return np.linalg.norm(vector)
 
+    # invert equation of dot product 
     def get_vector_angle(self, vec1, vec2):
         return np.arccos(np.dot(vec1, vec2) / (self.get_vector_length(vec1) * self.get_vector_length(vec2)))
 
@@ -210,7 +214,10 @@ class image_converter:
 
         return centre_blue, centre_red
 
+    # main method to get the desired joint value 
     def detect_joint_angles(self):
+
+        # unit vecors 
         x = np.array([1, 0, 0])
         y = np.array([0, 1, 0])
         z = np.array([0, 0, 1])
@@ -219,29 +226,19 @@ class image_converter:
         centre_yellow = np.array([5, 0, 112])
         centre_blue, centre_red = self.get_joint_centre()
 
-        # calculate joint 1 & 3 & 4
-
+        # pull link out of vector
         yellow_blue_link = centre_blue - centre_yellow
         blue_red_link = centre_red - centre_blue
 
-        print("x: ", (centre_red[0] * 0.038))
-        print("y: ", (centre_red[1] * 0.038))
-        print("z: ", (centre_red[2] * 0.038))
 
-        # joint1 = 0
-        # joint3 = 0
 
+        # get joints via angle of links and plane / axis 
         joint3 = self.get_vector_angle(yellow_blue_link, z)
         joint3_alt = -joint3
 
         joint1 = self.get_vector_angle([yellow_blue_link[0], yellow_blue_link[1]], [0, -1])
-        # joint1_alt = 0
 
-        # if (joint3 == 0): 
-        #     self.switch_sign *= -1
-
-        # joint3 *= self.switch_sign
-
+        # switch sign if goes to negative 
         if (yellow_blue_link[1] < 0):
             joint3 *= -1
 
@@ -250,44 +247,26 @@ class image_converter:
 
         joint1raw = joint1
 
+        # distinguish two conditions of joint1 value 
         # maybe distinglish 3 cases when joint1 angle = 0
         if (joint1 >= 0):
             joint1_alt = joint1 - np.pi
 
+            # if there is sudden move, the flipped angle is better 
             if ((abs(joint1_alt - self.last_joint1_queue[0]) < abs(joint1 - self.last_joint1_queue[0]))):
                 joint1 = joint1_alt
-                # self.last_joint1_queue[-30:] = [joint1] * 30
-                # self.switch *= -1 
-
+                # 
+                self.last_joint1_queue[-20:] = [joint1] * 20
 
         else:
             joint1_alt = joint1 + np.pi
 
             if ((abs(joint1_alt - self.last_joint1_queue[0]) < abs(joint1 - self.last_joint1_queue[0]))):
                 joint1 = joint1_alt
-                # self.last_joint1_queue[-30:] = [joint1] * 30
-                # self.switch *= -1
+                self.last_joint1_queue[-20:] = [joint1] * 20
 
-        # if (self.switch == -1):
-        #     joint1 -= np.pi
 
-        # if ( abs(joint1 - self.last_joint1_queue[0]) > 0.8* np.pi):
-        #    if (self.last_joint1_queue[0] < joint1): 
-        #        joint1 -= (joint1 - self.last_joint1_queue[0])
-        #    else: 
-        #        joint1 += (joint1 - self.last_joint1_queue[0])
-
-        # if (self.get_vector_length(yellow_blue_link[0:2]) < 1): 
-        # self.constant = np.pi
-        #     joint1 = self.last_joint1
-
-        # joint1 += self.constant
-
-        # if ((yellow_blue_link[1]>0) & (yellow_blue_link[0] > self.last_yellow_blue_link[0])):
-        #     joint1 *= -1
-        # elif ((yellow_blue_link[1]<0) & (yellow_blue_link[0] < self.last_yellow_blue_link[0])):
-        #     joint1 *= -1
-
+        # joint 4 calculation same as vision_1.py 
         joint4 = self.get_vector_angle(yellow_blue_link, blue_red_link)
         if (joint4 > np.pi/2):
             joint4 = np.pi - joint4
@@ -298,6 +277,7 @@ class image_converter:
             joint4 *= -1
 
 
+        # store the history for comparison, prevent sudden changes
         self.last_yellow_blue_link = yellow_blue_link
 
         self.last_joint1 = joint1
