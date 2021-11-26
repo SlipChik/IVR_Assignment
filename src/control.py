@@ -51,6 +51,7 @@ class kinematics:
         self.last_error = np.array([0.0, 0.0, 0.0], dtype='float64')
 
     def DH_Matrix(self, theta, a, r, d):
+        # The equaion to calculate forward kinematis 
     	Matrix = np.array([[np.cos(theta), -np.sin(theta) * np.cos(a),  np.sin(theta) * np.sin(a), r * np.cos(theta)],
                          [np.sin(theta),  np.cos(theta) * np.cos(a), -np.cos(theta) * np.sin(a), r * np.sin(theta)],
                          [0, np.sin(a), np.cos(a), d],
@@ -61,15 +62,18 @@ class kinematics:
         t1 = t1.data
         t3 = t3.data
         t4 = t4.data
+        # DH parameters get from observing the robot 
         mat1 = self.DH_Matrix(t1 + np.pi / 2, np.pi / 2, 0, 4)
         mat2 = self.DH_Matrix(t3 + np.pi / 2, np.pi / 2, 3.2, 0)
         mat3 = self.DH_Matrix(t4, 0, 2.8, 0)
 
         FK_matrix = mat1 @ mat2 @ mat3
+        # ignore value except coordinate 
         EE_cord = FK_matrix[:3, -1]
         return EE_cord
 
 
+    # jacobian calculated by taking partial derivitive w.r.t Forward Kinematics Equation 
     def get_jacobian(self, q1, q3, q4):
         q1 = q1.data
         q3 = q3.data
@@ -100,7 +104,7 @@ class kinematics:
         return jacobian
 
 
-
+    # equation of PID control 
     def get_pid_r(self, error, J_inv, dt):
         kp = np.eye(3) * 4
         kd = np.eye(3) * 0.3
@@ -124,12 +128,14 @@ class kinematics:
         dt = cur_time - self.time_previous_step2
         self.time_previous_step2 = cur_time
 
+        # calculate inverse kinematics 
         jacobian = self.get_jacobian(self.j1, self.j3, self.j4)
         J_inv = np.linalg.pinv(jacobian)
 
         target_joints_d = self.get_pid_r((target - current), J_inv, dt)
         target_joints = np.array([self.j1.data, self.j3.data, self.j4.data]) + target_joints_d * dt  # 50
 
+        # structuralize 
         if target_joints[0] > 0:
             target_joints[0] = min(target_joints[0], np.pi)
         else:
