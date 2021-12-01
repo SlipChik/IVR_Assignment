@@ -47,10 +47,9 @@ class image_converter:
         self.last_red_1 = np.zeros(2)
         self.last_red_2 = np.zeros(2)
 
-        # hardcode the coordinate of green and yellow since joint1 is fixed
+        # hardcode the coordinate of green since joint1 is fixed
         # set centre_green as origin
         self.centre_green_detect = np.array([387, 399, 543])
-        self.centre_yellow_detect = np.array([392, 399, 431])
 
     # find the centre of the green joint
     def detect_green(self, img):
@@ -181,6 +180,13 @@ class image_converter:
         return np.arccos(np.dot(v1, v2) / (self.get_vector_length(v1) * self.get_vector_length(v2)))
 
     def get_joint_centre(self):
+        centre_yellow_1 = self.detect_yellow(self.cv_image1)
+        centre_yellow_2 = self.detect_yellow(self.cv_image2)
+        centre_yellow_x = centre_yellow_2[0] - self.centre_green_detect[0]
+        centre_yellow_y = centre_yellow_1[0] - self.centre_green_detect[1]
+        centre_yellow_z = -(centre_yellow_1[1] + centre_yellow_2[1] - 2 * self.centre_green_detect[2]) / 2
+        centre_yellow = np.array([centre_yellow_x, centre_yellow_y, centre_yellow_z])
+
         centre_blue_1 = self.detect_blue(self.cv_image1)
         centre_blue_2 = self.detect_blue(self.cv_image2)
         centre_blue_x = centre_blue_2[0] - self.centre_green_detect[0]
@@ -195,7 +201,7 @@ class image_converter:
         centre_red_z = -(centre_red_1[1] + centre_red_2[1] - 2 * self.centre_green_detect[2]) / 2
         centre_red = np.array([centre_red_x, centre_red_y, centre_red_z])
 
-        return centre_blue, centre_red
+        return centre_yellow, centre_blue, centre_red
 
     def detect_joint_angles(self):
         x = np.array([1, 0, 0])
@@ -203,8 +209,7 @@ class image_converter:
         z = np.array([0, 0, 1])
 
         centre_green = np.array([0, 0, 0])
-        centre_yellow = np.array([5, 0, 112])
-        centre_blue, centre_red = self.get_joint_centre()
+        centre_yellow, centre_blue, centre_red = self.get_joint_centre()
 
         # calculate joint 2 & 3 & 4
 
