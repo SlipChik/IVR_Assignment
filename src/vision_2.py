@@ -230,6 +230,12 @@ class image_converter:
         centre_green = np.array([0, 0, 0])
         centre_yellow, centre_blue, centre_red = self.get_joint_centre()
 
+        # print out the location of end effector
+        print("x: ", (centre_red[0] * 0.038))
+        print("y: ", (centre_red[1] * 0.038))
+        print("z: ", (centre_red[2] * 0.038))
+
+
         # pull link out of vector
         green_yellow_link = centre_yellow - centre_green
         yellow_blue_link = centre_blue - centre_yellow
