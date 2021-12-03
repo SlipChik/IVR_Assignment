@@ -28,8 +28,8 @@ class kinematics:
         # self.end_effector_sub = rospy.Subscriber('end_effector_prediction', Float64MultiArray, self.callback)
 
         self.robot_joint1_pub = rospy.Publisher("/robot/joint1_position_controller/command", Float64, queue_size=10)
-        self.robot_joint3_pub = rospy.Publisher("/robot/joint2_position_controller/command", Float64, queue_size=10)
-        self.robot_joint4_pub = rospy.Publisher("/robot/joint3_position_controller/command", Float64, queue_size=10)
+        self.robot_joint3_pub = rospy.Publisher("/robot/joint3_position_controller/command", Float64, queue_size=10)
+        self.robot_joint4_pub = rospy.Publisher("/robot/joint4_position_controller/command", Float64, queue_size=10)
         self.end_effector_cal_pub = rospy.Publisher("end_effector_cal", Float64MultiArray, queue_size=10)
 
         self.time = rospy.get_time()
